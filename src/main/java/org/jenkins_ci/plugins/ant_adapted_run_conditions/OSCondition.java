@@ -97,6 +97,9 @@ public class OSCondition extends RunCondition {
 		public ListBoxModel doFillFamilyItems() throws IllegalAccessException {
 			ListBoxModel lbm = new ListBoxModel();
 
+			// Add empty option to the top
+			lbm.add("");
+
 			// Introspects the Os class for supported OS family values and
 			// dynamically populate the drop-down list options for the family
 			// field
