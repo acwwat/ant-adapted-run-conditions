@@ -1,0 +1,5 @@
+<div>
+	This plugin provides run conditions adapted from a subset of Apache
+	Ant's <a href="http://ant.apache.org/manual/Tasks/conditions.html">supported
+		conditions</a>.
+</div>
