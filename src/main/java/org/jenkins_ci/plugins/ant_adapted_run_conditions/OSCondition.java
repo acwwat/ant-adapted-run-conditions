@@ -88,10 +88,10 @@ public class OSCondition extends RunCondition {
 
 		/**
 		 * Returns the <code>ListBoxModel</code> object containing drop-down
-		 * options for the family field.
+		 * options for the <code>family</code> field.
 		 * 
 		 * @return The <code>ListBoxModel</code> object containing drop-down
-		 *         options for the family field.
+		 *         options for the <code>family</code> field.
 		 * @throws IllegalAccessException
 		 */
 		public ListBoxModel doFillFamilyItems() throws IllegalAccessException {
