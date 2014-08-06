@@ -22,10 +22,17 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  -->
-<j:jelly xmlns:j="jelly:core">
-	<div>
-		Run if a string contains another one. Similar to Ant's
-		<a href="http://ant.apache.org/manual/Tasks/conditions.html#contains" target="_blank">contains</a>
-		condition.
-	</div>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:entry title="${%string}" field="string">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="${%trim}" field="trim">
+        <f:checkbox default="false" />
+    </f:entry>
+     <f:entry title="${%length}" field="length">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="${%when}" field="when">
+        <f:select />
+    </f:entry>
 </j:jelly>

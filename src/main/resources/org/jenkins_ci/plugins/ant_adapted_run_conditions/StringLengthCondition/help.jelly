@@ -24,8 +24,8 @@
  -->
 <j:jelly xmlns:j="jelly:core">
 	<div>
-		Run if a string contains another one. Similar to Ant's
-		<a href="http://ant.apache.org/manual/Tasks/conditions.html#contains" target="_blank">contains</a>
+		Run if the length of a string matches a given criteria. Similar to Ant's
+		<a href="http://ant.apache.org/manual/Tasks/conditions.html#length" target="_blank">length</a>
 		condition.
 	</div>
 </j:jelly>

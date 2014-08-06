@@ -27,40 +27,24 @@ package org.jenkins_ci.plugins.ant_adapted_run_conditions;
 import hudson.Extension;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
-import hudson.model.Descriptor;
-import hudson.model.Hudson;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 
-import java.util.List;
-
 import org.jenkins_ci.plugins.run_condition.RunCondition;
-import org.jenkins_ci.plugins.run_condition.common.BaseDirectory;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
 /**
- * This condition runs if the length of a file matches a given criteria.
+ * This condition runs if the length of a string matches a given criteria.
  * 
  * @author Anthony Wat
  */
-public class FileLengthCondition extends RunCondition {
+public class StringLengthCondition extends RunCondition {
 
 	@Extension
-	public static class FileLengthConditionDescriptor extends
+	public static class StringLengthConditionDescriptor extends
 			RunConditionDescriptor {
-
-		/**
-		 * Validates the <code>file</code> field.
-		 * 
-		 * @return <code>FormValidation.ok()</code> if validation is successful;
-		 *         <code>FormValidation.error()</code> with an error message
-		 *         otherwise.
-		 */
-		public FormValidation doCheckFile(@QueryParameter String value) {
-			return FormValidation.validateRequired(value);
-		}
 
 		/**
 		 * Validates the <code>length</code> field.
@@ -96,18 +80,6 @@ public class FileLengthCondition extends RunCondition {
 			return lbm;
 		}
 
-		/**
-		 * Returns the list of base directories.
-		 * 
-		 * @return The list of base directories.
-		 */
-		public List<? extends Descriptor<? extends BaseDirectory>> getBaseDirectories() {
-			return Hudson
-					.getInstance()
-					.<BaseDirectory, BaseDirectory.BaseDirectoryDescriptor> getDescriptorList(
-							BaseDirectory.class);
-		}
-
 		/*
 		 * (non-Javadoc)
 		 * 
@@ -115,20 +87,10 @@ public class FileLengthCondition extends RunCondition {
 		 */
 		@Override
 		public String getDisplayName() {
-			return Messages.FileLengthCondition_displayName();
+			return Messages.StringLengthCondition_displayName();
 		}
 
 	}
-
-	/**
-	 * The base directory of the file.
-	 */
-	final BaseDirectory baseDir;
-
-	/**
-	 * The file relative to the base directory to compare length on.
-	 */
-	final String file;
 
 	/**
 	 * The comparison length.
@@ -136,47 +98,40 @@ public class FileLengthCondition extends RunCondition {
 	final String length;
 
 	/**
+	 * The string to compare length on.
+	 */
+	final String string;
+
+	/**
+	 * whether the string should be trimmed before the length comparison.
+	 */
+	final boolean trim;
+
+	/**
 	 * The comparison type.
 	 */
 	final String when;
 
 	/**
-	 * Constructs a <code>FileLengthCondition</code> object.
+	 * Constructs a <code>StringLengthCondition</code> object.
 	 * 
-	 * @param baseDir
-	 *            The base directory of the file.
 	 * @param file
-	 *            The file relative to the base directory to compare length on.
+	 *            The string to compare length on.
+	 * @param trim
+	 *            Whether the string should be trimmed before the length
+	 *            comparison.
 	 * @param length
 	 *            The comparison length.
 	 * @param when
 	 *            The comparison type.
 	 */
 	@DataBoundConstructor
-	public FileLengthCondition(BaseDirectory baseDir, String file,
-			String length, String when) {
-		this.baseDir = baseDir;
-		this.file = file;
+	public StringLengthCondition(String string, boolean trim, String length,
+			String when) {
+		this.string = string;
+		this.trim = trim;
 		this.length = length;
 		this.when = when;
-	}
-
-	/**
-	 * Returns the base directory of the file.
-	 * 
-	 * @return The base directory of the file.
-	 */
-	public BaseDirectory getBaseDir() {
-		return baseDir;
-	}
-
-	/**
-	 * Returns the file relative to the base directory to compare length on.
-	 * 
-	 * @return The file relative to the base directory to compare length on.
-	 */
-	public String getFile() {
-		return file;
 	}
 
 	/**
@@ -186,6 +141,15 @@ public class FileLengthCondition extends RunCondition {
 	 */
 	public String getLength() {
 		return length;
+	}
+
+	/**
+	 * Returns the string to compare length on.
+	 * 
+	 * @return The string to compare length on.
+	 */
+	public String getString() {
+		return string;
 	}
 
 	/**
@@ -207,17 +171,17 @@ public class FileLengthCondition extends RunCondition {
 	@Override
 	public boolean runPerform(AbstractBuild<?, ?> build, BuildListener listener)
 			throws Exception {
-		String expandedFile = TokenMacro.expandAll(build, listener, file);
+		String expandedString = TokenMacro.expandAll(build, listener, string);
 		listener.getLogger().println(
-				Messages.FileLengthCondition_console_args(baseDir,
-						expandedFile, length, when));
+				Messages.StringLengthCondition_console_args(string, trim,
+						length, when));
 		// Let exception be thrown when file does not exist
-		long fileLength = baseDir.getBaseDirectory(build).child(expandedFile)
-				.length();
+		long stringLength = trim ? expandedString.trim().length()
+				: expandedString.length();
 		long lengthValue = Long.valueOf(length);
 		for (When whenEnumValue : When.values()) {
 			if (whenEnumValue.getName().equals(when)) {
-				return whenEnumValue.compare(fileLength, lengthValue);
+				return whenEnumValue.compare(stringLength, lengthValue);
 			}
 		}
 		return false;
@@ -234,6 +198,17 @@ public class FileLengthCondition extends RunCondition {
 	public boolean runPrebuild(AbstractBuild<?, ?> build, BuildListener listener)
 			throws Exception {
 		return true;
+	}
+
+	/**
+	 * Returns whether the string should be trimmed before the length
+	 * comparison.
+	 * 
+	 * @return <code>true</code> if the string should be trimmed before the
+	 *         length comparison; <code>false</code> otherwise.
+	 */
+	public boolean trim() {
+		return trim;
 	}
 
 }

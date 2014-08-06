@@ -28,7 +28,6 @@ import hudson.Extension;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 
-import org.apache.tools.ant.taskdefs.condition.Contains;
 import org.jenkins_ci.plugins.run_condition.RunCondition;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -37,7 +36,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * This run condition runs if a string contains another one.
  * 
  * @author Anthony Wat
- * @see Contains
  * 
  */
 public class ContainsCondition extends RunCondition {
@@ -87,7 +85,7 @@ public class ContainsCondition extends RunCondition {
 	 * @return The string to search in.
 	 */
 	public String getString() {
-		return this.string;
+		return string;
 	}
 
 	/**
@@ -96,7 +94,7 @@ public class ContainsCondition extends RunCondition {
 	 * @return The string to search for.
 	 */
 	public String getSubstring() {
-		return this.substring;
+		return substring;
 	}
 
 	/**
@@ -106,7 +104,7 @@ public class ContainsCondition extends RunCondition {
 	 *         performed; <code>false</code> otherwise.
 	 */
 	public boolean isCaseSensitive() {
-		return this.caseSensitive;
+		return caseSensitive;
 	}
 
 	/*
@@ -125,11 +123,9 @@ public class ContainsCondition extends RunCondition {
 		listener.getLogger().println(
 				Messages.ContainsCondition_console_args(expandedString,
 						expandedSubstring));
-		Contains containsCondition = new Contains();
-		containsCondition.setString(expandedString);
-		containsCondition.setSubstring(expandedSubstring);
-		containsCondition.setCasesensitive(caseSensitive);
-		return containsCondition.eval();
+		return caseSensitive ? expandedString.contains(expandedSubstring)
+				: expandedString.toLowerCase().contains(
+						expandedSubstring.toLowerCase());
 	}
 
 	/*

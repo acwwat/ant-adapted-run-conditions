@@ -22,20 +22,40 @@
  * THE SOFTWARE.
  */
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.jenkins_ci.plugins.ant_adapted_run_conditions;
 
 import hudson.Extension;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
+import hudson.model.Computer;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.tools.ant.taskdefs.condition.Os;
 import org.jenkins_ci.plugins.run_condition.RunCondition;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -45,7 +65,6 @@ import org.kohsuke.stapler.QueryParameter;
  * This condition runs if the current operating system is of a given type.
  * 
  * @author Anthony Wat
- * @see Os
  */
 public class OSCondition extends RunCondition {
 
@@ -104,7 +123,7 @@ public class OSCondition extends RunCondition {
 			// dynamically populate the drop-down list options for the family
 			// field
 			Set<String> familyOptions = new TreeSet<String>();
-			Field[] fields = Os.class.getDeclaredFields();
+			Field[] fields = this.clazz.getDeclaredFields();
 			for (Field field : fields) {
 				if (Modifier.isPublic(field.getModifiers())
 						&& Modifier.isStatic(field.getModifiers())
@@ -130,6 +149,38 @@ public class OSCondition extends RunCondition {
 		}
 
 	}
+
+	/*
+	 * This constants are copied from Apache Ant 1.9.4's
+	 * <code>org.apache.tools.ant.taskdefs.condition.Os</code> class and adapted
+	 * for use in this Jenkins run condition.
+	 */
+
+	private static final String DARWIN = "darwin";
+
+	public static final String FAMILY_9X = "win9x";
+
+	public static final String FAMILY_DOS = "dos";
+
+	public static final String FAMILY_MAC = "mac";
+
+	public static final String FAMILY_NETWARE = "netware";
+
+	public static final String FAMILY_NT = "winnt";
+
+	public static final String FAMILY_OS2 = "os/2";
+
+	public static final String FAMILY_OS400 = "os/400";
+
+	public static final String FAMILY_TANDEM = "tandem";
+
+	public static final String FAMILY_UNIX = "unix";
+
+	public static final String FAMILY_VMS = "openvms";
+
+	public static final String FAMILY_WINDOWS = "windows";
+
+	public static final String FAMILY_ZOS = "z/os";
 
 	/**
 	 * The architecture of the operating system family to expect.
@@ -195,6 +246,139 @@ public class OSCondition extends RunCondition {
 		return this.version;
 	}
 
+	/**
+	 * This method is copied from Apache Ant 1.9.4's
+	 * <code>org.apache.tools.ant.taskdefs.condition.Os</code> class and adapted
+	 * for use in this Jenkins run condition. Determines if the OS on which Ant
+	 * is executing matches the given OS family.
+	 * 
+	 * @param family
+	 *            The OS family.
+	 * @return <code>true</code> if the OS matches; <code>false</code>
+	 *         otherwise.
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
+	private boolean isFamily(String family) throws IOException,
+			InterruptedException {
+		return isOs(family, null, null, null);
+	}
+
+	/**
+	 * This method is copied from Apache Ant 1.9.4's
+	 * <code>org.apache.tools.ant.taskdefs.condition.Os</code> class and adapted
+	 * for use in this Jenkins run condition. Determines if the OS on which Ant
+	 * is executing matches the given OS family, name, architecture and version.
+	 * 
+	 * @param family
+	 *            The OS family.
+	 * @param name
+	 *            The OS name.
+	 * @param arch
+	 *            The OS architecture.
+	 * @param version
+	 *            The OS version.
+	 * @return <code>true</code> if the OS matches; <code>false</code>
+	 *         otherwise.
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
+	private boolean isOs(String family, String name, String arch, String version)
+			throws IOException, InterruptedException {
+		// Obtain the required JVM system properties from the Computer that is
+		// currently running the build
+		Computer computer = Computer.currentComputer();
+		Map<Object, Object> sysProps = computer.getSystemProperties();
+		String sysPropOsName = ((String) sysProps.get("os.name"))
+				.toLowerCase(Locale.ENGLISH);
+		String sysPropOsArch = ((String) sysProps.get("os.arch"))
+				.toLowerCase(Locale.ENGLISH);
+		String sysPropOsVersion = ((String) sysProps.get("os.version"))
+				.toLowerCase(Locale.ENGLISH);
+		String sysPropPathSep = (String) sysProps.get("path.separator");
+
+		boolean retValue = false;
+
+		if (family != null || name != null || arch != null || version != null) {
+
+			boolean isFamily = true;
+			boolean isName = true;
+			boolean isArch = true;
+			boolean isVersion = true;
+
+			if (family != null) {
+
+				// windows probing logic relies on the word 'windows' in
+				// the OS
+				boolean isWindows = sysPropOsName.indexOf(FAMILY_WINDOWS) > -1;
+				boolean is9x = false;
+				boolean isNT = false;
+				if (isWindows) {
+					// there are only four 9x platforms that we look for
+					is9x = (sysPropOsName.indexOf("95") >= 0
+							|| sysPropOsName.indexOf("98") >= 0
+							|| sysPropOsName.indexOf("me") >= 0
+					// wince isn't really 9x, but crippled enough to
+					// be a muchness. Ant doesn't run on CE, anyway.
+					|| sysPropOsName.indexOf("ce") >= 0);
+					isNT = !is9x;
+				}
+				if (family.equals(FAMILY_WINDOWS)) {
+					isFamily = isWindows;
+				} else if (family.equals(FAMILY_9X)) {
+					isFamily = isWindows && is9x;
+				} else if (family.equals(FAMILY_NT)) {
+					isFamily = isWindows && isNT;
+				} else if (family.equals(FAMILY_OS2)) {
+					isFamily = sysPropOsName.indexOf(FAMILY_OS2) > -1;
+				} else if (family.equals(FAMILY_NETWARE)) {
+					isFamily = sysPropOsName.indexOf(FAMILY_NETWARE) > -1;
+				} else if (family.equals(FAMILY_DOS)) {
+					isFamily = sysPropPathSep.equals(";")
+							&& !isFamily(FAMILY_NETWARE);
+				} else if (family.equals(FAMILY_MAC)) {
+					isFamily = sysPropOsName.indexOf(FAMILY_MAC) > -1
+							|| sysPropOsName.indexOf("dawrin") > -1;
+				} else if (family.equals(FAMILY_TANDEM)) {
+					isFamily = sysPropOsName.indexOf("nonstop_kernel") > -1;
+				} else if (family.equals(FAMILY_UNIX)) {
+					isFamily = sysPropPathSep.equals(":")
+							&& !isFamily(FAMILY_VMS)
+							&& (!isFamily(FAMILY_MAC)
+									|| sysPropOsName.endsWith("x") || sysPropOsName
+									.indexOf("dawrin") > -1);
+				} else if (family.equals(FAMILY_ZOS)) {
+					isFamily = sysPropOsName.indexOf(FAMILY_ZOS) > -1
+							|| sysPropOsName.indexOf("os/390") > -1;
+				} else if (family.equals(FAMILY_OS400)) {
+					isFamily = sysPropOsName.indexOf(FAMILY_OS400) > -1;
+				} else if (family.equals(FAMILY_VMS)) {
+					isFamily = sysPropOsName.indexOf(FAMILY_VMS) > -1;
+				} else {
+					// Comment out this throw statement and return false instead
+					// in the run condition
+					/*
+					 * throw new BuildException(
+					 * "Don\'t know how to detect os family \"" + family +
+					 * "\"");
+					 */
+					return false;
+				}
+			}
+			if (name != null) {
+				isName = name.equals(sysPropOsName);
+			}
+			if (arch != null) {
+				isArch = arch.equals(sysPropOsArch);
+			}
+			if (version != null) {
+				isVersion = version.equals(sysPropOsVersion);
+			}
+			retValue = isFamily && isName && isArch && isVersion;
+		}
+		return retValue;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -206,32 +390,16 @@ public class OSCondition extends RunCondition {
 	public boolean runPerform(AbstractBuild<?, ?> build, BuildListener listener)
 			throws Exception {
 		// Treat empty values as null
-		String expandedFamily = (family.length() == 0) ? null : TokenMacro
-				.expandAll(build, listener, family);
 		String expandedName = (name.length() == 0) ? null : TokenMacro
 				.expandAll(build, listener, name);
 		String expandedArch = (arch.length() == 0) ? null : TokenMacro
 				.expandAll(build, listener, arch);
 		String expandedVersion = (version.length() == 0) ? null : TokenMacro
 				.expandAll(build, listener, version);
-
 		listener.getLogger().println(
-				Messages.OSCondition_console_args(expandedFamily, expandedName,
+				Messages.OSCondition_console_args(family, expandedName,
 						expandedArch, expandedVersion));
-		Os osCondition = new Os();
-		if (expandedFamily != null) {
-			osCondition.setFamily(expandedFamily);
-		}
-		if (expandedName != null) {
-			osCondition.setName(expandedName);
-		}
-		if (expandedArch != null) {
-			osCondition.setArch(expandedArch);
-		}
-		if (expandedVersion != null) {
-			osCondition.setVersion(expandedVersion);
-		}
-		return osCondition.eval();
+		return isOs(family, expandedName, expandedArch, expandedVersion);
 	}
 
 	/*

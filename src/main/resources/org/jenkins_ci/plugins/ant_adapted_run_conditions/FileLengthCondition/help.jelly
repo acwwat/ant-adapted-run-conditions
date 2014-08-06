@@ -24,7 +24,7 @@
  -->
 <j:jelly xmlns:j="jelly:core">
 	<div>
-		Run if the length of a file matches a given criteria. Adapted from Ant's
+		Run if the length of a file matches a given criteria. Similar to Ant's
 		<a href="http://ant.apache.org/manual/Tasks/conditions.html#length" target="_blank">length</a>
 		condition.
 	</div>

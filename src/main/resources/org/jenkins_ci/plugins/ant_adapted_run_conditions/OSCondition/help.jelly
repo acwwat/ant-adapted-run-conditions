@@ -24,7 +24,7 @@
  -->
 <j:jelly xmlns:j="jelly:core">
 	<div>
-		Run if the current operating system is of a given type. Adapted from Ant's
+		Run if the current operating system is of a given type. Similar to Ant's
 		<a href="http://ant.apache.org/manual/Tasks/conditions.html#os" target="_blank">os</a>
 		condition.
 	</div>
